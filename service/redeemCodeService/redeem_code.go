@@ -2,6 +2,7 @@ package redeemCodeService
 
 import (
 	"errors"
+	"jiyu/config"
 	"jiyu/global"
 	"jiyu/model/contextModel"
 	"jiyu/model/redeemCodeModel"
@@ -113,6 +114,17 @@ func RedeemCode(ctx contextModel.Context, req redeemCodeModel.RedeemCodeRequest)
 		tx.Rollback()
 		log.Printf("redeemCodeService.RedeemCode 更新用户充值额度失败, error: %v", err)
 		return errors.New("兑换失败")
+	}
+
+	// 判断用户 api_key 是否为空，如果为空则更新为配置文件中的 api_key
+	if user.ApiKey == "" && config.AppConfig.ApiKey != "" {
+		user.ApiKey = config.AppConfig.ApiKey
+		err = userRepo.UpdateApiKeyTx(tx, user)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("redeemCodeService.RedeemCode 更新用户api_key失败, error: %v", err)
+			return errors.New("兑换失败")
+		}
 	}
 
 	// 提交事务

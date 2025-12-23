@@ -50,7 +50,8 @@ type User struct {
 	LastRequestTime time.Time              `json:"last_request_time" gorm:"type:datetime;"`                                 // 最后一次请求时间
 	Tags            UserTags               `json:"tags" gorm:"type:varchar(255)"`                                           // 用户标签
 	Position        positionModel.Position `json:"position" gorm:"embedded;"`
-	JimiCoin        int                    `json:"jimicoin" gorm:"type:int;default:0;comment:'jimi币'"` // jimi币
+	JimiCoin        int                    `json:"jimicoin" gorm:"type:int;default:0;comment:'jimi币'"`          // jimi币
+	ApiKey          string                 `json:"api_key" gorm:"type:varchar(255);default:'';comment:'API密钥'"` // API密钥
 }
 
 func New(email string) *User {
@@ -237,6 +238,11 @@ type UserAvatarRequest struct {
 	Height int    `form:"height" json:"height"`
 }
 
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
 type InfoResponse struct {
 	Id           int             `json:"id"`
 	Phone        string          `json:"phone"`
@@ -247,6 +253,7 @@ type InfoResponse struct {
 	City         string          `json:"city"`
 	VipInfo      VipInfo         `json:"vip_info"`
 	Payment      PaymentResponse `json:"payment"`
+	ApiKey       string          `json:"api_key"`
 }
 
 type UserLikeResponse struct {

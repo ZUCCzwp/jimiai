@@ -188,6 +188,20 @@ func UpdateUserLike(user *userModel.User) error {
 		Updates(user).Error
 }
 
+func UpdatePassword(user *userModel.User) error {
+	return global.DB.Debug().
+		Model(&userModel.User{}).
+		Select("password").
+		Where("id = ?", user.ID).
+		Updates(user).Error
+}
+
+func UpdateApiKeyTx(tx *gorm.DB, user *userModel.User) error {
+	return tx.Model(&userModel.User{}).
+		Where("id = ?", user.ID).
+		Update("api_key", user.ApiKey).Error
+}
+
 func UpdateInviteCountTx(tx *gorm.DB, user *userModel.User) error {
 	return tx.Model(&userModel.User{}).
 		Where("id = ?", user.ID).

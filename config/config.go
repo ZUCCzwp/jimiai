@@ -53,6 +53,7 @@ type Database struct {
 type App struct {
 	DefaultAvatar           string `json:"default_avatar" gorm:"type:varchar(255)"`    // 默认头像地址
 	DefaultDeleteImageCount int    `json:"default_delete_image_count" gorm:"type:int"` // 闪照每天销毁次数
+	ApiKey                  string `json:"api_key" gorm:"type:varchar(255)"`           // API密钥
 }
 
 // Domain 域名相关配置
@@ -111,11 +112,11 @@ type Ad struct {
 
 // Email 邮箱配置
 type Email struct {
-	SMTPHost     string `json:"smtp_host"`      // SMTP服务器地址，如：smtp.qq.com
-	SMTPPort     string `json:"smtp_port"`      // SMTP端口，如：587
-	FromEmail    string `json:"from_email"`      // 发送邮箱地址
-	FromPassword string `json:"from_password"`  // 发送邮箱密码或授权码
-	FromName     string `json:"from_name"`       // 发送者名称
+	SMTPHost     string `json:"smtp_host"`     // SMTP服务器地址，如：smtp.qq.com
+	SMTPPort     string `json:"smtp_port"`     // SMTP端口，如：587
+	FromEmail    string `json:"from_email"`    // 发送邮箱地址
+	FromPassword string `json:"from_password"` // 发送邮箱密码或授权码
+	FromName     string `json:"from_name"`     // 发送者名称
 }
 
 type Member struct {
@@ -215,6 +216,12 @@ func InitConfig() {
 			log.Printf("邮箱配置加载失败: %v", err)
 		}
 	}
+
+	if cfg.HasSection("App") {
+		if err := loadConfigSection(cfg, "App", &AppConfig); err != nil {
+			log.Printf("App配置加载失败: %v", err)
+		}
+	}
 }
 
 func LoadConfig(configFilePath string) {
@@ -231,6 +238,12 @@ func LoadConfig(configFilePath string) {
 	if cfg.HasSection("Email") {
 		if err := loadConfigSection(cfg, "Email", &EmailConfig); err != nil {
 			log.Printf("邮箱配置加载失败: %v", err)
+		}
+	}
+
+	if cfg.HasSection("App") {
+		if err := loadConfigSection(cfg, "App", &AppConfig); err != nil {
+			log.Printf("App配置加载失败: %v", err)
 		}
 	}
 }

@@ -381,3 +381,25 @@ func LogoutToken(c *gin.Context) {
 
 	response.Success(c, "退出登录成功", nil)
 }
+
+// UpdatePassword 修改密码接口
+func UpdatePassword(c *gin.Context) {
+	var data userModel.UpdatePasswordRequest
+
+	err := c.ShouldBindJSON(&data)
+	if err != nil {
+		response.Error(c, response.INVALID_PARAMS, "参数错误", nil)
+		return
+	}
+
+	ctx := c.MustGet("context").(contextModel.Context)
+
+	err = userService.UpdatePassword(ctx, data)
+	if err != nil {
+		log.Println("api.user.UpdatePassword 修改密码失败, error:", err)
+		response.Error(c, response.ERROR, err.Error(), nil)
+		return
+	}
+
+	response.Success(c, "修改密码成功", nil)
+}

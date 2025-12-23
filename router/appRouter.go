@@ -100,6 +100,8 @@ func routers(r *gin.Engine) {
 		userRouter.GET("/home/:uid", userApi.UserHomeData)
 		// 上传用户信息
 		userRouter.POST("/position", userApi.UpdatePosition)
+		// 修改密码
+		userRouter.POST("/password", userApi.UpdatePassword)
 	}
 
 	chargeRouter := r.Group("/api/charge").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())

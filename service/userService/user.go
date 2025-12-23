@@ -331,6 +331,7 @@ func GetInfo(ctx contextModel.Context) (userModel.InfoResponse, error) {
 		City:         ctx.User.City,
 		VipInfo:      user.GetVipInfo(memberList),
 		Payment:      userModel.PaymentResponse{JimiCoin: jimicoin, UsedCoin: usedcoin, RequestCount: requestCount},
+		ApiKey:       user.ApiKey,
 	}, nil
 }
 
@@ -531,4 +532,30 @@ func UpdateUserVip(tx *gorm.DB, uid int, days int) error {
 		user.VipTime = &newVipTime
 	}
 	return userRepo.UpdateVipExpireTimeTx(tx, user)
+}
+
+// UpdatePassword 修改密码
+func UpdatePassword(ctx contextModel.Context, data userModel.UpdatePasswordRequest) error {
+	user := ctx.User
+
+	// 验证旧密码
+	if !user.ComparePassword(data.OldPassword) {
+		return errors.New("旧密码错误")
+	}
+
+	// 设置新密码并加密
+	user.Password = data.NewPassword
+	if err := user.HashPassword(); err != nil {
+		log.Println("userService.UpdatePassword 密码加密失败, error: ", err)
+		return errors.New("密码加密失败")
+	}
+
+	// 只更新密码字段
+	err := userRepo.UpdatePassword(user)
+	if err != nil {
+		log.Println("userService.UpdatePassword 更新密码失败, error: ", err)
+		return errors.New("更新密码失败")
+	}
+
+	return nil
 }
