@@ -14,6 +14,7 @@ import (
 	"jiyu/model/payModel"
 	"jiyu/model/redeemCodeModel"
 	"jiyu/model/serverModel"
+	"jiyu/model/usageDetailModel"
 	"jiyu/model/userModel"
 	"log"
 	"net/url"
@@ -149,6 +150,10 @@ func AutoMigrate() {
 	err = DB.AutoMigrate(&redeemCodeModel.RedeemCode{})
 	if err != nil {
 		log.Fatalf("兑换码数据库迁移失败: %s\n", err.Error())
+	}
+	err = DB.AutoMigrate(&usageDetailModel.UsageDetail{})
+	if err != nil {
+		log.Fatalf("使用明细数据库迁移失败: %s\n", err.Error())
 	}
 }
 

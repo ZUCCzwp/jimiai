@@ -9,6 +9,7 @@ import (
 	"jiyu/api/inviteApi"
 	"jiyu/api/payApi"
 	"jiyu/api/redeemCodeApi"
+	"jiyu/api/usageDetailApi"
 	"jiyu/api/userApi"
 	"jiyu/global"
 	"jiyu/middleware"
@@ -102,6 +103,10 @@ func routers(r *gin.Engine) {
 		userRouter.POST("/position", userApi.UpdatePosition)
 		// 修改密码
 		userRouter.POST("/password", userApi.UpdatePassword)
+		// 创建使用明细
+		userRouter.POST("/usage/detail", usageDetailApi.CreateUsageDetail)
+		// 获取使用明细列表
+		userRouter.GET("/usage/list", usageDetailApi.GetUsageDetailList)
 	}
 
 	chargeRouter := r.Group("/api/charge").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())
