@@ -34,13 +34,13 @@ func CreateUsageDetail(c *gin.Context) {
 		usageDetailModel.UsageDetailTypeCharge:      true,
 	}
 	if !validTypes[req.Type] {
-		response.Error(c, response.INVALID_PARAMS, "类型无效，必须是: consumption(消费)、refund(退款)、charge(充值)", nil)
+		response.Error(c, response.INVALID_PARAMS, "类型无效，必须是: consumption(消费)、refund(退款)、recharge(充值)", nil)
 		return
 	}
 
-	// 如果是消费类型，必须提供模型名称
-	if req.Type == usageDetailModel.UsageDetailTypeConsumption && req.Model == "" {
-		response.Error(c, response.INVALID_PARAMS, "消费类型必须提供模型名称", nil)
+	// 如果是消费类型，必须提供模型名称或任务ID
+	if req.Type == usageDetailModel.UsageDetailTypeConsumption && req.Model == "" && req.TaskId == "" {
+		response.Error(c, response.INVALID_PARAMS, "消费类型必须提供模型名称或任务ID", nil)
 		return
 	}
 

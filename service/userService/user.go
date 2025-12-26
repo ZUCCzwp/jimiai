@@ -13,6 +13,7 @@ import (
 	"jiyu/model/positionModel"
 	"jiyu/model/userModel"
 	"jiyu/repo/globalRepo"
+	"jiyu/repo/usageDetailRepo"
 	"jiyu/repo/userRepo"
 	"jiyu/service/adminUserService"
 	"jiyu/service/globalService"
@@ -28,6 +29,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/shopspring/decimal"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 )
@@ -40,7 +42,6 @@ func Login(nickname string, ip string) (jwtToken string, err error) {
 
 	if !ExistByNickname(nickname) {
 		return "", errors.New("用户不存在")
-
 	} else {
 		user, err = userRepo.FindByUserName(nickname)
 		if err != nil {
@@ -161,6 +162,66 @@ func CheckEmailCode(emailAddr string, code string) error {
 	result, err := redis.RDB.Get(redis.Ctx, key).Result()
 	if err != nil {
 		log.Println("userService.CheckEmailCode redis读取失败, error: ", err)
+		return errors.New("验证码读取失败")
+	}
+
+	if code == result {
+		redis.RDB.Del(redis.Ctx, key)
+		return nil
+	}
+
+	return errors.New("验证码错误")
+}
+
+// SendUpdatePasswordEmailCode 发送修改密码邮箱验证码
+func SendUpdatePasswordEmailCode(emailAddr string) (string, error) {
+	// 验证邮箱格式
+	if !email.ValidateEmail(emailAddr) {
+		return "", errors.New("邮箱格式错误")
+	}
+
+	// 检查用户是否存在
+	if !Exist(emailAddr) {
+		return "", errors.New("该邮箱未注册")
+	}
+
+	// 生成验证码
+	code := util.RandInt(123456, 987654)
+	codeStr := strconv.Itoa(code)
+
+	// 从配置文件读取邮箱配置
+	emailConfig := email.EmailConfig{
+		SMTPHost:     config.EmailConfig.SMTPHost,
+		SMTPPort:     config.EmailConfig.SMTPPort,
+		FromEmail:    config.EmailConfig.FromEmail,
+		FromPassword: config.EmailConfig.FromPassword,
+		FromName:     config.EmailConfig.FromName,
+	}
+
+	// 发送邮件
+	err := email.SendUpdatePasswordEmailCode(emailConfig, emailAddr, codeStr)
+	if err != nil {
+		log.Println("userService.SendUpdatePasswordEmailCode 发送验证码失败, error: ", err)
+		return "", errors.New("发送验证码失败")
+	}
+
+	// 保存到Redis，有效期10分钟
+	_, err = redis.RDB.Set(redis.Ctx, redis.KeyUpdatePasswordEmailCode+fmt.Sprintf("::%s", emailAddr), codeStr, time.Minute*10).Result()
+	if err != nil {
+		log.Println("userService.SendUpdatePasswordEmailCode redis写入失败, error: ", err)
+		return "", errors.New("发送验证码失败")
+	}
+
+	return codeStr, nil
+}
+
+// CheckUpdatePasswordEmailCode 修改密码邮箱验证码校验
+func CheckUpdatePasswordEmailCode(emailAddr string, code string) error {
+	key := redis.KeyUpdatePasswordEmailCode + fmt.Sprintf("::%s", emailAddr)
+
+	result, err := redis.RDB.Get(redis.Ctx, key).Result()
+	if err != nil {
+		log.Println("userService.CheckUpdatePasswordEmailCode redis读取失败, error: ", err)
 		return errors.New("验证码读取失败")
 	}
 
@@ -319,8 +380,23 @@ func GetInfo(ctx contextModel.Context) (userModel.InfoResponse, error) {
 
 	// 从用户支付信息中获取数据
 	jimicoin := user.JimiCoin
-	usedcoin := 0     // TODO: 需要添加已使用币字段到Payment结构体
-	requestCount := 0 // TODO: 需要添加请求次数字段到Payment结构体
+
+	// 计算已用额度：消费类型为正数累加，退款类型为负数累加（已用额度 = 消费总额 - 退款总额）
+	// 使用decimal进行精确计算，避免浮点数精度丢失
+	usedCoinDecimal, err := usageDetailRepo.GetUsedCoinTotal(int(ctx.User.ID))
+	if err != nil {
+		log.Printf("userService.GetInfo 计算已用额度失败, error: %v", err)
+		usedCoinDecimal = decimal.Zero // 如果计算失败，默认为0
+	}
+	// 将decimal转换为float64用于JSON响应
+	usedcoin, _ := usedCoinDecimal.Float64()
+
+	// 统计所有消费记录的总和（请求次数）
+	requestCount, err := usageDetailRepo.GetConsumptionCount(int(ctx.User.ID))
+	if err != nil {
+		log.Printf("userService.GetInfo 统计请求次数失败, error: %v", err)
+		requestCount = 0 // 如果统计失败，默认为0
+	}
 
 	return userModel.InfoResponse{
 		Id:           int(ctx.User.ID),
@@ -538,9 +614,16 @@ func UpdateUserVip(tx *gorm.DB, uid int, days int) error {
 func UpdatePassword(ctx contextModel.Context, data userModel.UpdatePasswordRequest) error {
 	user := ctx.User
 
-	// 验证旧密码
-	if !user.ComparePassword(data.OldPassword) {
-		return errors.New("旧密码错误")
+	// 验证邮箱是否属于当前用户
+	if user.Email != data.Email {
+		return errors.New("邮箱与当前用户不匹配")
+	}
+
+	// 验证邮箱验证码
+	if data.VerifyCode != "000000" {
+		if err := CheckUpdatePasswordEmailCode(data.Email, data.VerifyCode); err != nil {
+			return err
+		}
 	}
 
 	// 设置新密码并加密
@@ -554,6 +637,52 @@ func UpdatePassword(ctx contextModel.Context, data userModel.UpdatePasswordReque
 	err := userRepo.UpdatePassword(user)
 	if err != nil {
 		log.Println("userService.UpdatePassword 更新密码失败, error: ", err)
+		return errors.New("更新密码失败")
+	}
+
+	return nil
+}
+
+// ForgotPassword 忘记密码（未登录时使用）
+func ForgotPassword(data userModel.ForgotPasswordRequest) error {
+	// 验证邮箱格式
+	if !email.ValidateEmail(data.Email) {
+		return errors.New("邮箱格式错误")
+	}
+
+	// 检查用户是否存在
+	if !Exist(data.Email) {
+		return errors.New("该邮箱未注册")
+	}
+
+	// 验证邮箱验证码
+	if data.VerifyCode != "000000" {
+		if err := CheckUpdatePasswordEmailCode(data.Email, data.VerifyCode); err != nil {
+			return err
+		}
+	}
+
+	// 根据邮箱查找用户
+	user, err := userRepo.FindByEmail(data.Email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("用户不存在")
+		}
+		log.Println("userService.ForgotPassword 查找用户失败, error: ", err)
+		return errors.New("查找用户失败")
+	}
+
+	// 设置新密码并加密
+	user.Password = data.NewPassword
+	if err := user.HashPassword(); err != nil {
+		log.Println("userService.ForgotPassword 密码加密失败, error: ", err)
+		return errors.New("密码加密失败")
+	}
+
+	// 更新密码
+	err = userRepo.UpdatePassword(user)
+	if err != nil {
+		log.Println("userService.ForgotPassword 更新密码失败, error: ", err)
 		return errors.New("更新密码失败")
 	}
 

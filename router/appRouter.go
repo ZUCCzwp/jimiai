@@ -9,6 +9,7 @@ import (
 	"jiyu/api/inviteApi"
 	"jiyu/api/payApi"
 	"jiyu/api/redeemCodeApi"
+	"jiyu/api/taskApi"
 	"jiyu/api/usageDetailApi"
 	"jiyu/api/userApi"
 	"jiyu/global"
@@ -61,8 +62,12 @@ func routers(r *gin.Engine) {
 		publicRouter.POST("/register", userApi.Register)
 		// 发送登录验证码
 		publicRouter.POST("/sendLoginCode", userApi.LoginSMSCode)
-		// 发送邮箱验证码
+		// 发送注册邮箱验证码
 		publicRouter.POST("/sendEmailCode", userApi.SendEmailCode)
+		// 发送修改密码邮箱验证码
+		publicRouter.POST("/sendUpdatePasswordEmailCode", userApi.SendUpdatePasswordEmailCode)
+		// 忘记密码（未登录时使用）
+		publicRouter.POST("/forgotPassword", userApi.ForgotPassword)
 		// 获取所有标签
 		publicRouter.GET("/user/tagsMap", userApi.TagsMap)
 		// 获取协议
@@ -107,6 +112,16 @@ func routers(r *gin.Engine) {
 		userRouter.POST("/usage/detail", usageDetailApi.CreateUsageDetail)
 		// 获取使用明细列表
 		userRouter.GET("/usage/list", usageDetailApi.GetUsageDetailList)
+	}
+
+	taskRouter := r.Group("/api/task").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())
+	{
+		// 创建任务
+		taskRouter.POST("", taskApi.CreateTask)
+		// 更新任务
+		taskRouter.PUT("/:taskId", taskApi.UpdateTask)
+		// 获取任务列表
+		taskRouter.GET("/list", taskApi.GetTaskList)
 	}
 
 	chargeRouter := r.Group("/api/charge").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())

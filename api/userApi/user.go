@@ -67,6 +67,27 @@ func SendEmailCode(c *gin.Context) {
 	response.Success(c, "发送成功", nil)
 }
 
+// SendUpdatePasswordEmailCode 发送修改密码邮箱验证码
+func SendUpdatePasswordEmailCode(c *gin.Context) {
+	var data userModel.EmailCodeRequest
+
+	err := c.ShouldBindJSON(&data)
+	if err != nil {
+		response.Error(c, response.INVALID_PARAMS, "参数错误", nil)
+		return
+	}
+
+	fmt.Println("发送修改密码邮箱验证码:", data.Email)
+
+	_, err = userService.SendUpdatePasswordEmailCode(data.Email)
+	if err != nil {
+		response.Error(c, response.ERROR, err.Error(), nil)
+		return
+	}
+
+	response.Success(c, "发送成功", nil)
+}
+
 func Login(c *gin.Context) {
 	var data userModel.LoginRequest
 
@@ -402,4 +423,24 @@ func UpdatePassword(c *gin.Context) {
 	}
 
 	response.Success(c, "修改密码成功", nil)
+}
+
+// ForgotPassword 忘记密码接口（未登录时使用）
+func ForgotPassword(c *gin.Context) {
+	var data userModel.ForgotPasswordRequest
+
+	err := c.ShouldBindJSON(&data)
+	if err != nil {
+		response.Error(c, response.INVALID_PARAMS, "参数错误", nil)
+		return
+	}
+
+	err = userService.ForgotPassword(data)
+	if err != nil {
+		log.Println("api.user.ForgotPassword 重置密码失败, error:", err)
+		response.Error(c, response.ERROR, err.Error(), nil)
+		return
+	}
+
+	response.Success(c, "重置密码成功", nil)
 }

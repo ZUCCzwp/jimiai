@@ -56,39 +56,39 @@ func main() {
 		return basePrice
 	}
 
-	// 创建测试数据
+	// 创建测试数据（使用英文类型）
 	testData := []usageDetailModel.UsageDetail{
 		{
 			UserId:    userId,
-			Type:      "充值",
+			Type:      usageDetailModel.UsageDetailTypeCharge,
 			ModelName: "",
 			Cost:      100.0000,
 			Details:   "账户充值",
 		},
 		{
 			UserId:    userId,
-			Type:      "退款",
+			Type:      usageDetailModel.UsageDetailTypeRefund,
 			ModelName: "",
 			Cost:      50.0000,
 			Details:   "订单退款",
 		},
 		{
 			UserId:    userId,
-			Type:      "消费",
+			Type:      usageDetailModel.UsageDetailTypeConsumption,
 			ModelName: "sora_url",
 			Cost:      calculateCost("sora_url", isVip),
 			Details:   "-",
 		},
 		{
 			UserId:    userId,
-			Type:      "消费",
+			Type:      usageDetailModel.UsageDetailTypeConsumption,
 			ModelName: "gpt-4",
 			Cost:      calculateCost("gpt-4", isVip),
 			Details:   "-",
 		},
 		{
 			UserId:    userId,
-			Type:      "消费",
+			Type:      usageDetailModel.UsageDetailTypeConsumption,
 			ModelName: "claude-3",
 			Cost:      calculateCost("claude-3", isVip),
 			Details:   "-",

@@ -4,6 +4,8 @@ import (
 	"jiyu/global"
 	"jiyu/model/usageDetailModel"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 // CreateUsageDetail 创建使用明细
@@ -96,3 +98,55 @@ func CountUsageDetailList(userId int, startTime, endTime, detailType, model stri
 	return int(count), err
 }
 
+// GetUsedCoinTotal 计算用户已用额度（消费类型为正数累加，退款类型为负数累加）
+// 已用额度 = 所有消费类型的cost之和 - 所有退款类型的cost之和
+// 使用decimal进行精确计算，避免浮点数精度丢失
+func GetUsedCoinTotal(userId int) (decimal.Decimal, error) {
+	var result struct {
+		Total float64
+	}
+
+	// 计算消费类型的总额（正数）
+	err := global.DB.Model(&usageDetailModel.UsageDetail{}).
+		Select("COALESCE(SUM(cost), 0) as total").
+		Where("user_id = ? AND type = ?", userId, usageDetailModel.UsageDetailTypeConsumption).
+		Scan(&result).Error
+
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	consumptionTotal := decimal.NewFromFloat(result.Total)
+
+	// 计算退款类型的总额（正数）
+	err = global.DB.Model(&usageDetailModel.UsageDetail{}).
+		Select("COALESCE(SUM(cost), 0) as total").
+		Where("user_id = ? AND type = ?", userId, usageDetailModel.UsageDetailTypeRefund).
+		Scan(&result).Error
+
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	refundTotal := decimal.NewFromFloat(result.Total)
+
+	// 已用额度 = 消费总额 - 退款总额（使用decimal进行精确计算）
+	usedCoin := consumptionTotal.Sub(refundTotal)
+
+	return usedCoin, nil
+}
+
+// GetConsumptionCount 统计用户的所有消费记录总数（请求次数）
+func GetConsumptionCount(userId int) (int, error) {
+	var count int64
+
+	err := global.DB.Model(&usageDetailModel.UsageDetail{}).
+		Where("user_id = ? AND type = ?", userId, usageDetailModel.UsageDetailTypeConsumption).
+		Count(&count).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
+}

@@ -239,7 +239,15 @@ type UserAvatarRequest struct {
 }
 
 type UpdatePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required"`
+	Email       string `json:"email" binding:"required"`
+	VerifyCode  string `json:"verify_code" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
+// ForgotPasswordRequest 忘记密码请求（未登录时使用）
+type ForgotPasswordRequest struct {
+	Email       string `json:"email" binding:"required"`
+	VerifyCode  string `json:"verify_code" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`
 }
 
@@ -261,9 +269,9 @@ type UserLikeResponse struct {
 }
 
 type PaymentResponse struct {
-	JimiCoin     int `json:"jimicoin" gorm:"type:int;default:0;"`      // 吉米币
-	UsedCoin     int `json:"used_coin" gorm:"type:int;default:0;"`     // 已使用币
-	RequestCount int `json:"request_count" gorm:"type:int;default:0;"` // 请求次数
+	JimiCoin     int     `json:"jimicoin" gorm:"type:int;default:0;"`            // 吉米币
+	UsedCoin     float64 `json:"used_coin" gorm:"type:decimal(10,4);default:0;"` // 已使用币（浮点数）
+	RequestCount int     `json:"request_count" gorm:"type:int;default:0;"`       // 请求次数
 }
 
 // Detail 用户的详情

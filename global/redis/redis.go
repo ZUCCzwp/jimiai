@@ -18,9 +18,10 @@ const (
 	KeyBottleMomentDetail = "jimiai:bottle:moment:detail"
 	KeyBottleLiked        = "jimiai:bottle:moment:liked"
 	KeyBottleCommentLiked = "jimiai:bottle:comment:liked"
-	KeySMSCode            = "jimiai:sms:code"
-	KeyEmailCode          = "jimiai:email:code"
-	KeyBottleRead         = "jimiai:bottle:read"
+	KeySMSCode                  = "jimiai:sms:code"
+	KeyEmailCode                = "jimiai:email:code"
+	KeyUpdatePasswordEmailCode  = "jimiai:email:code:update_password"
+	KeyBottleRead               = "jimiai:bottle:read"
 	KeyHotUsers           = "jimiai:user:hot"
 	KeyUserRanking        = "jimiai:invite:user:ranking" //邀请排行
 	KeyTokenBlacklist     = "jimiai:token:blacklist"     //token黑名单

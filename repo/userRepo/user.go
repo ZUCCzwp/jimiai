@@ -33,6 +33,16 @@ func FindByID(id int) (*userModel.User, error) {
 	return &user, err
 }
 
+// FindByEmail 根据邮箱查找用户
+func FindByEmail(email string) (*userModel.User, error) {
+	var user userModel.User
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	err := global.DB.Model(&userModel.User{}).Where("email = ?", email).First(&user).Error
+
+	return &user, err
+}
+
 // FindByMyInviteCode 根据自身邀请码查找用户
 func FindByMyInviteCode(inviteCode string) (*userModel.User, error) {
 	var user userModel.User
