@@ -12,6 +12,7 @@ import (
 	"jiyu/api/taskApi"
 	"jiyu/api/usageDetailApi"
 	"jiyu/api/userApi"
+	"jiyu/api/watermarkApi"
 	"jiyu/global"
 	"jiyu/middleware"
 	"time"
@@ -112,6 +113,12 @@ func routers(r *gin.Engine) {
 		userRouter.POST("/usage/detail", usageDetailApi.CreateUsageDetail)
 		// 获取使用明细列表
 		userRouter.GET("/usage/list", usageDetailApi.GetUsageDetailList)
+	}
+
+	watermarkRouter := r.Group("/api/watermark").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())
+	{
+		// 去水印接口
+		watermarkRouter.POST("/remove", watermarkApi.RemoveWatermark)
 	}
 
 	taskRouter := r.Group("/api/task").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())

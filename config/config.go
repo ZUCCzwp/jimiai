@@ -53,7 +53,7 @@ type Database struct {
 type App struct {
 	DefaultAvatar           string `json:"default_avatar" gorm:"type:varchar(255)"`    // 默认头像地址
 	DefaultDeleteImageCount int    `json:"default_delete_image_count" gorm:"type:int"` // 闪照每天销毁次数
-	ApiKey                  string `json:"api_key" gorm:"type:varchar(255)"`           // API密钥
+	DyuAPIURL               string `json:"dyu_api_url" gorm:"type:varchar(255)"`        // 去水印API地址
 }
 
 // Domain 域名相关配置
