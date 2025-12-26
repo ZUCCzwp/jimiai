@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: jimiai-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-jimiai}
+      MYSQL_USER: ${MYSQL_USER:-jimi}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone='+8:00'
+    networks:
+      - jimiai-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 服务
+  redis:
+    image: redis:7-alpine
+    container_name: jimiai-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD:-123456}
+    networks:
+      - jimiai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-123456}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 主应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jimiai-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-27355}:27355"
+    volumes:
+      - ./config/config.docker.ini:/app/config/config.ini:ro
+      - ./runtime/log:/app/runtime/log
+      - ./runtime/upload:/app/runtime/upload
+    command: /app/bin/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jimiai-network
+    environment:
+      - TZ=Asia/Shanghai
+
+  # 管理后台服务
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jimiai-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-27356}:27356"
+    volumes:
+      - ./config/config.docker.ini:/app/config/config.ini:ro
+      - ./runtime/log:/app/runtime/log
+      - ./runtime/upload:/app/runtime/upload
+    command: /app/bin/admin
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jimiai-network
+    environment:
+      - TZ=Asia/Shanghai
+
+networks:
+  jimiai-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
