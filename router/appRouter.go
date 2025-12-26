@@ -12,6 +12,7 @@ import (
 	"jiyu/api/taskApi"
 	"jiyu/api/usageDetailApi"
 	"jiyu/api/userApi"
+	"jiyu/api/videoApi"
 	"jiyu/api/watermarkApi"
 	"jiyu/global"
 	"jiyu/middleware"
@@ -119,6 +120,14 @@ func routers(r *gin.Engine) {
 	{
 		// 去水印接口
 		watermarkRouter.POST("/remove", watermarkApi.RemoveWatermark)
+	}
+
+	videoRouter := r.Group("/api/video").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())
+	{
+		// 图生视频接口
+		videoRouter.POST("/generate", videoApi.GenerateVideo)
+		// 查询视频任务接口
+		videoRouter.GET("/:videoId", videoApi.GetVideo)
 	}
 
 	taskRouter := r.Group("/api/task").Use(middleware.JWTAuth()).Use(middleware.Context()).Use(middleware.Banned())
