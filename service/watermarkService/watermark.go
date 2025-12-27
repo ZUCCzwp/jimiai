@@ -5,10 +5,7 @@ import (
 	"jiyu/model/watermarkModel"
 	"jiyu/util/http"
 	"log"
-)
-
-const (
-	defaultDyuAPIURL = "https://api.dyuapi.com/v1/chat/completions"
+	"strings"
 )
 
 // RemoveWatermark 调用去水印接口
@@ -19,11 +16,19 @@ func RemoveWatermark(req watermarkModel.ChatCompletionRequest, apiKey string) (*
 		return nil, &ServiceError{Message: "API Key 未配置"}
 	}
 
-	// 从配置文件获取 API URL，如果没有配置则使用默认值
-	dyuAPIURL := config.AppConfig.DyuAPIURL
-	if dyuAPIURL == "" {
-		dyuAPIURL = defaultDyuAPIURL
+	// 从配置文件获取 API 基础 URL 和版本号，必须配置
+	baseURL := config.AppConfig.DyuAPIURL
+	apiVersion := config.AppConfig.DyuAPIVersion
+	if baseURL == "" {
+		log.Println("watermarkService.RemoveWatermark API地址未配置")
+		return nil, &ServiceError{Message: "API地址未配置，请在配置文件中设置 dyu_api_url"}
 	}
+	if apiVersion == "" {
+		apiVersion = "v1" // 默认使用 v1
+	}
+
+	// 拼接完整的 API URL
+	dyuAPIURL := strings.TrimSuffix(baseURL, "/") + "/" + apiVersion + "/chat/completions"
 
 	// 调用外部 API
 	var response watermarkModel.ChatCompletionResponse

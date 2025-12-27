@@ -66,31 +66,6 @@ services:
       - jimiai-network
     environment:
       - TZ=Asia/Shanghai
-
-  # 管理后台服务
-  admin:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: jimiai-admin
-    restart: unless-stopped
-    ports:
-      - "${ADMIN_PORT:-27356}:27356"
-    volumes:
-      - ./config/config.docker.ini:/app/config/config.ini:ro
-      - ./runtime/log:/app/runtime/log
-      - ./runtime/upload:/app/runtime/upload
-    command: /app/bin/admin
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - jimiai-network
-    environment:
-      - TZ=Asia/Shanghai
-
 networks:
   jimiai-network:
     driver: bridge

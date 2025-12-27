@@ -16,15 +16,19 @@ func GenerateVideo(req videoModel.VideoGenerationRequest, filePath string, apiKe
 		return nil, &ServiceError{Message: "API Key 未配置"}
 	}
 
-	// 从配置文件获取 API URL，必须配置
-	dyuAPIURL := config.AppConfig.DyuAPIURL
-	if dyuAPIURL == "" {
+	// 从配置文件获取 API 基础 URL 和版本号，必须配置
+	baseURL := config.AppConfig.DyuAPIURL
+	apiVersion := config.AppConfig.DyuAPIVersion
+	if baseURL == "" {
 		log.Println("videoService.GenerateVideo API地址未配置")
 		return nil, &ServiceError{Message: "API地址未配置，请在配置文件中设置 dyu_api_url"}
 	}
+	if apiVersion == "" {
+		apiVersion = "v1" // 默认使用 v1
+	}
 
-	// 将路径中的 chat/completions 替换为 videos
-	dyuAPIURL = strings.Replace(dyuAPIURL, "/v1/chat/completions", "/v1/videos", 1)
+	// 拼接完整的 API URL
+	dyuAPIURL := strings.TrimSuffix(baseURL, "/") + "/" + apiVersion + "/videos"
 
 	// 构建表单字段
 	formFields := map[string]string{
@@ -64,16 +68,19 @@ func GetVideo(videoID string, apiKey string) (*videoModel.VideoQueryResponse, er
 		return nil, &ServiceError{Message: "API Key 未配置"}
 	}
 
-	// 从配置文件获取 API URL，必须配置
-	dyuAPIURL := config.AppConfig.DyuAPIURL
-	if dyuAPIURL == "" {
+	// 从配置文件获取 API 基础 URL 和版本号，必须配置
+	baseURL := config.AppConfig.DyuAPIURL
+	apiVersion := config.AppConfig.DyuAPIVersion
+	if baseURL == "" {
 		log.Println("videoService.GetVideo API地址未配置")
 		return nil, &ServiceError{Message: "API地址未配置，请在配置文件中设置 dyu_api_url"}
 	}
+	if apiVersion == "" {
+		apiVersion = "v1" // 默认使用 v1
+	}
 
-	// 将路径中的 chat/completions 替换为 videos，并拼接视频ID
-	dyuAPIURL = strings.Replace(dyuAPIURL, "/v1/chat/completions", "/v1/videos", 1)
-	dyuAPIURL = dyuAPIURL + "/" + videoID
+	// 拼接完整的 API URL（包含视频ID）
+	dyuAPIURL := strings.TrimSuffix(baseURL, "/") + "/" + apiVersion + "/videos/" + videoID
 
 	// 调用外部 API
 	var response videoModel.VideoQueryResponse

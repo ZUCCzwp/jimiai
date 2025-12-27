@@ -4,6 +4,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"log"
+	"os"
+	"strings"
 
 	"gopkg.in/ini.v1"
 )
@@ -53,7 +55,8 @@ type Database struct {
 type App struct {
 	DefaultAvatar           string `json:"default_avatar" gorm:"type:varchar(255)"`    // 默认头像地址
 	DefaultDeleteImageCount int    `json:"default_delete_image_count" gorm:"type:int"` // 闪照每天销毁次数
-	DyuAPIURL               string `json:"dyu_api_url" gorm:"type:varchar(255)"`       // API地址
+	DyuAPIURL               string `json:"dyu_api_url" gorm:"type:varchar(255)"`       // API基础地址
+	DyuAPIVersion           string `json:"dyu_api_version" gorm:"type:varchar(10)"`    // API版本号，如 v1, v2
 }
 
 // Domain 域名相关配置
@@ -200,11 +203,45 @@ func loadRequiredConfigs(cfg *ini.File) error {
 	return nil
 }
 
+// expandEnv 替换字符串中的环境变量
+// 支持 ${VAR} 和 ${VAR:-default} 格式
+func expandEnv(s string) string {
+	return os.Expand(s, func(key string) string {
+		// 处理 ${VAR:-default} 格式
+		if idx := strings.Index(key, ":-"); idx > 0 {
+			envKey := key[:idx]
+			defaultValue := key[idx+2:]
+			if value := os.Getenv(envKey); value != "" {
+				return value
+			}
+			return defaultValue
+		}
+		// 处理 ${VAR} 格式
+		return os.Getenv(key)
+	})
+}
+
+// expandEnvInConfig 遍历配置文件中所有值并替换环境变量
+func expandEnvInConfig(cfg *ini.File) {
+	for _, section := range cfg.Sections() {
+		for _, key := range section.Keys() {
+			value := key.Value()
+			expanded := expandEnv(value)
+			if expanded != value {
+				key.SetValue(expanded)
+			}
+		}
+	}
+}
+
 func InitConfig() {
 	cfg, err := ini.Load(configFilePath)
 	if err != nil {
 		log.Fatalln("配置文件读取失败，请检查配置文件路径是否正确")
 	}
+
+	// 替换配置文件中的环境变量
+	expandEnvInConfig(cfg)
 
 	if err := loadRequiredConfigs(cfg); err != nil {
 		log.Fatalln(err)
@@ -229,6 +266,9 @@ func LoadConfig(configFilePath string) {
 	if err != nil {
 		log.Fatalln("配置文件读取失败，请检查配置文件路径是否正确")
 	}
+
+	// 替换配置文件中的环境变量
+	expandEnvInConfig(cfg)
 
 	if err := loadRequiredConfigs(cfg); err != nil {
 		log.Fatalln(err)
